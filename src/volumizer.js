@@ -33,7 +33,7 @@ const Volumizer = () => {
     const [signer, setSigner] = useState(null);
     const [contract, setContract] = useState(null);
     const [chainId, setChainId] = useState(null);
-    
+
     const [txId, setTxId] = useState(null);
     const [explorerLink, setExplorerLink] = useState("https://basescan.org/");
     const [linkVisibility, setLinkVisibility] = useState(false);
@@ -53,17 +53,17 @@ const Volumizer = () => {
     // }
 
     const connectWalletHandler = () => {
-        if (window.ethereum){
-            window.ethereum.request({method: "eth_requestAccounts"})
-            .then(result => {
-                accountChangedHandler(result[0]);
-                setConnectButtonText('Wallet Connected');
-                updateEthers();
-            });
+        if (window.ethereum) {
+            window.ethereum.request({ method: "eth_requestAccounts" })
+                .then(result => {
+                    accountChangedHandler(result[0]);
+                    setConnectButtonText('Wallet Connected');
+                    updateEthers();
+                });
         } else {
             setErrorMessage("Need to install MetaMask");
         }
-        
+
     }
 
     const chainValidator = async (tempSigner) => {
@@ -83,31 +83,31 @@ const Volumizer = () => {
                     method: "wallet_switchEthereumChain",
                     params: [{ chainId: ethers.utils.hexValue(8453) }]
                 })
-                .then((result) => {
-                    if (result === null) {
-                        let tempContract = new ethers.Contract(contractAddress, volumizer_abi, tempSigner);
-                        setContract(tempContract);
-                        console.log(tempContract.owner());
+                    .then((result) => {
+                        if (result === null) {
+                            let tempContract = new ethers.Contract(contractAddress, volumizer_abi, tempSigner);
+                            setContract(tempContract);
+                            console.log(tempContract.owner());
 
-                        let tempWethContract = new ethers.Contract(wethContractAddress, erc20_abi, tempSigner);
-                        setWethContract(tempWethContract);
-                        updateAllowance(tempSigner, tempWethContract);
-                        updatePoolBalance(tempWethContract);
-                    }
-                })
-                .catch((error) => { setErrorMessage(error.message) });
+                            let tempWethContract = new ethers.Contract(wethContractAddress, erc20_abi, tempSigner);
+                            setWethContract(tempWethContract);
+                            updateAllowance(tempSigner, tempWethContract);
+                            updatePoolBalance(tempWethContract);
+                        }
+                    })
+                    .catch((error) => { setErrorMessage(error.message) });
             }
             catch (error) { }
         }
     }
- 
+
     const accountChangedHandler = (newAccount) => {
         setDefaultAccount(newAccount);
         updateEthers();
     }
 
     const updateEthers = async () => {
-        try {        
+        try {
             let tempProvider = new ethers.providers.Web3Provider(window.ethereum, 'any');
             setProvider(tempProvider);
 
@@ -116,17 +116,26 @@ const Volumizer = () => {
 
             chainValidator(tempSigner);
         }
-        catch(error) { };
+        catch (error) { };
     }
 
     const updateUniFee = () => {
         let amt = parseFloat($("#amount").value);
-        setUniswapFee(amt * poolFee);
+        setUniswapFee((amt * poolFee).toFixed(18));
     }
 
     const executeHandler = async () => {
         try {
             let wethAmt = ethers.utils.parseEther($("#amount").value);
+
+            {
+                let allowBig = ethers.utils.parseEther(wethAllowance);
+                let uniBig = ethers.utils.parseEther(uniswapFee);
+                if (allowBig.lt(wethAmt.add(uniBig))) {
+                    await wethContract.approve(contractAddress, wethAmt.add(uniBig));
+                }
+            }
+
             let tx = await contract.start(wethContractAddress, wethAmt, overrides);
             let receipt = await tx.wait();
             if (receipt.status === 1) {
@@ -145,14 +154,14 @@ const Volumizer = () => {
                 setErrorMessage("Transaction failed.");
             }
         }
-        catch(error) {
+        catch (error) {
             setErrorMessage(error.message);
         }
     }
 
-    const updateAllowance = async (tempSigner,tempWethContract) => {
-        let allwnce = await tempWethContract.allowance(tempSigner.getAddress(),contractAddress);
-        let bigAllwnce = ethers.BigNumber.from(allwnce);        
+    const updateAllowance = async (tempSigner, tempWethContract) => {
+        let allwnce = await tempWethContract.allowance(tempSigner.getAddress(), contractAddress);
+        let bigAllwnce = ethers.BigNumber.from(allwnce);
         let AllwnceStr = formatEther(bigAllwnce);
         setWethAllowance(AllwnceStr);
     }
@@ -163,7 +172,7 @@ const Volumizer = () => {
         let balanceStr = formatEther(balance);
         setPoolWethBalance(balanceStr);
     }
- 
+
     const addWhitelistHandler = () => {
 
     }
@@ -181,19 +190,19 @@ const Volumizer = () => {
                 </div>
 
                 <div id='connectDiv' style={{ textAlign: "right" }}>
-                    <span style={{float: "left", color: addressColor}}>Current Address: {defaultAccount}</span>
+                    <span style={{ float: "left", color: addressColor }}>Current Address: {defaultAccount}</span>
                     <button id='btnConnect' onClick={connectWalletHandler}>{connectButtonText}</button>
                 </div>
 
                 <fieldset>
                     <legend>Flash Loan</legend>
                     <div>
-                        <p>Loan amount: <input id="amount" type="number" min="0" step="any" onChange={updateUniFee}/> WETH</p>
+                        <p>Loan amount: <input id="amount" type="number" min="0" step="any" onChange={updateUniFee} /> WETH</p>
                         <span style={{ float: "inline-start" }}>Uniswap Fee: {uniswapFee} WETH</span>
-                        <span style={{ float: "inline-end" }}>Current Allowance: {wethAllowance} WETH</span><br/>
+                        <span style={{ float: "inline-end" }}>Current Allowance: {wethAllowance} WETH</span><br />
                         <span style={{ float: "inline-start" }}>WETH in Pool: {poolWethBalance} WETH</span>
                     </div>
-                    
+
                     <div style={{ paddingTop: "2.5rem" }}>
                         <button onClick={executeHandler}>Execute</button> &nbsp;
                     </div>
@@ -206,9 +215,9 @@ const Volumizer = () => {
                 <div style={{ marginTop: "4rem" }}>
                     <h4>How it works:</h4>
                     <p>
-                        Wrapped Ether is borrowed from Uniswap, and then sent to your address. 
-                        The WETH is then pulled back to the Volumizer contract, and repaid back to Uniswap. 
-                        Fees include Uniswap swapping fee (.01% with current pool), 
+                        Wrapped Ether is borrowed from Uniswap, and then sent to your address.
+                        The WETH is then pulled back to the Volumizer contract, and repaid back to Uniswap.
+                        Fees include Uniswap swapping fee (.01% with current pool),
                         plus 0.001 ETH Volumizer fee.
                     </p>
                     <p style={{ fontWeight: "bold" }}>
@@ -216,7 +225,7 @@ const Volumizer = () => {
                     </p>
                 </div>
 
-                <br/>
+                <br />
                 <div>
                     {errorMessage}
                 </div>
