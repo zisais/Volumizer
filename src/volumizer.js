@@ -128,14 +128,6 @@ const Volumizer = () => {
         try {
             let wethAmt = ethers.utils.parseEther($("#amount").value);
 
-            {
-                let allowBig = ethers.utils.parseEther(wethAllowance);
-                let uniBig = ethers.utils.parseEther(uniswapFee);
-                if (allowBig.lt(wethAmt.add(uniBig))) {
-                    await wethContract.approve(contractAddress, wethAmt.add(uniBig));
-                }
-            }
-
             let tx = await contract.start(wethContractAddress, wethAmt, overrides);
             let receipt = await tx.wait();
             if (receipt.status === 1) {
@@ -158,6 +150,13 @@ const Volumizer = () => {
             setErrorMessage(error.message);
         }
     }
+
+    const allowanceHandler = async () => {
+        let wethAmt = ethers.utils.parseEther($("#amount").value);
+        let uniBig = ethers.utils.parseEther(uniswapFee);
+        await wethContract.approve(contractAddress, wethAmt.add(uniBig));
+    }
+
 
     const updateAllowance = async (tempSigner, tempWethContract) => {
         let allwnce = await tempWethContract.allowance(tempSigner.getAddress(), contractAddress);
@@ -204,6 +203,7 @@ const Volumizer = () => {
                     </div>
 
                     <div style={{ paddingTop: "2.5rem" }}>
+                        <button onClick={allowanceHandler}>Set Allowance</button> &nbsp;
                         <button onClick={executeHandler}>Execute</button> &nbsp;
                     </div>
                 </fieldset>
