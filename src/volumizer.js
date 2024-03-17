@@ -7,7 +7,7 @@ const ethers = require('ethers');
 const Volumizer = () => {
     const $ = selector => document.querySelector(selector);
 
-    const contractAddress = '0x3eeC3f2513965Ca70529ceB91d3062C4C2451105';
+    const contractAddress = '0x3d94809311f6d93225B3EA967e66f75bbD2aAF0A';
     const wethContractAddress = '0x4200000000000000000000000000000000000006';
     const poolAddress = '0x20E068D76f9E90b90604500B84c7e19dCB923e7e';
     const poolFee = 0.0001;
